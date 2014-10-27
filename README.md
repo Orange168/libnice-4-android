@@ -4,7 +4,9 @@ libnice-4-android
 p2p
 
 libnice依赖于glib，glib编译请参照 https://github.com/since2014/glib4android
+
 稍后我会将编译通过的源代码以及编译出库文件以压缩包方式贴出;
+
 libnice的AndroidDemo会后续抽空写一个。
 
 
