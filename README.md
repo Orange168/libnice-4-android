@@ -3,6 +3,18 @@ libnice-4-android
 
 p2p
 
+libnice依赖于glib，glib编译请参照 https://github.com/since2014/glib4android
+稍后我会将编译通过的源代码以及编译出库文件以压缩包方式贴出;
+libnice的AndroidDemo会后续抽空写一个。
+
+
+编译libnice
+
+./configure --prefix="${SYSROOT}/usr" --host=arm-linux-androideabi CFLAGS="--sysroot $SYSROOT" --enable-static --disable-shared  LDFLAGS="-static"
+
+
+
+
 1. 下载源码
 
 a.下载glib-2.34.3
