@@ -14,7 +14,13 @@ libnice的AndroidDemo会后续抽空写一个。
 
 ./configure --prefix="${SYSROOT}/usr" --host=arm-linux-androideabi CFLAGS="--sysroot $SYSROOT" --enable-static --disable-shared  LDFLAGS="-static"
 
+make;make install
 
+
+
+附glib编译详细步骤：
+
+@https://github.com/since2014/glib4android
 
 
 1. 下载源码
