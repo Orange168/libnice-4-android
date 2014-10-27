@@ -4,81 +4,146 @@ libnice-4-android
 p2p
 
 1. 下载源码
+
 a.下载glib-2.34.3
+
 http://ftp.gnome.org/pub/gnome/sources/glib/2.34/glib-2.34.3.tar.xz
+
 b.下载libiconv-1.14
+
 http://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.14.tar.gz
+
 c. 下载gettex-0.18.2
+
 http://ftp.gnu.org/pub/gnu/gettext/gettext-0.18.2.tar.gz
+
 d. 下载libffi-3.0.12
+
 ftp://sourceware.org/pub/libffi/libffi-3.0.12.tar.gz
 
 2. 准备工作
+
 a. 设定工作目录（如YOUR_WORKSPACE）, 将上面下载的源码包(.tar.gz, 四个) 解压到$(YOUR_WORKSPACE)/glib-4-android/
+
 b. cd $(YOUR_WORKSPACE)/glib-4-android/
+
 c. ls
+
 ==>gettext-0.18.2  glib-2.34.3  libffi-3.0.12  libiconv-1.14
+
 d. 创建临时目录并下载以下两个文件。
+
 e. mkdir tmp
+
    wget -O ./tmp/config.sub "git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.sub;hb=HEAD"
+
    wget -O ./tmp/config.guess "git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD"
 
 3. 准备交叉编译环境
+
    我的ndk目录: /home/xxx/dev_env/android-ndk-r9d
+
 a. cd /home/xxx/dev_env/android-ndk-r9d
-b. build/tools/make-standalone-toolchain.sh --platform=android-14 --toolchain=arm-linux-androideabi-4.6 --install-dir=${HOME}/dev_env/android-toolchain
+
+b.
+build/tools/make-standalone-toolchain.sh --platform=android-14 --toolchain=arm-linux-androideabi-4.6 
+--install-dir=${HOME}/dev_env/android-toolchain
+
 c. echo "export SYSROOT=${HOME}/dev_env/android-toolchain/sysroot" >> ${HOME}/.bashrc
+
 d. echo 'export PATH=${PATH}:${HOME}/dev_env/android-toolchain/bin' >> ${HOME}/.bashrc
+
 e. source ${HOME}/.bashrc 或 source ~/.bashrc
 
 4. 编译libiconv
+
 a. cd $(YOUR_WORKSPACE)/glib-4-android/libiconv-1.14
+
 b. 到build-aux目录和libcharset/build-aux目录下备份config.sub和config.guess 为config.sub.bak和config.guess.bak
+
 c. 将$(YOUR_WORKSPACE)/glib-4-android/tmp里的config.sub和config.guess拷贝到$(YOUR_WORKSPACE)/glib-4-android/history_compile/libiconv-1.14下的build-aux目录和libcharset/build-aux目录下，两个目录两个文件都要有
+
 d. 备份libiconv-1.14/configure
+
 e. gl_cv_header_working_stdint_h=yes ./configure --prefix="${SYSROOT}/usr" --host=arm-linux-androideabi CFLAGS="--sysroot $SYSROOT" --enable-static
+
 f. make -j4;make install
+
 g. 编译完后在 ${SYSROOT}/usr/lib/目录下能找到库(libcharset.so和libiconv.so, preloadable_libiconv.so)
 
 
 5. 编译gettext
+
 a. cd $(YOUR_WORKSPACE)/glib-4-android/
+
 b. 找到gettext-tools/src/msginit.c, 备份msginit.c==>msginit.c.bak;
+
    找到这行“ /* Return the pw_gecos field, up to the first comma (if any).  */”;
+
 	将行   fullname = pwd->pw_gecos; 替换为：
+
 		#ifndef __ANDROID__
+
        			fullname = pwd->pw_gecos;
+		
 		#else
+		
 			fullname = "android";
+		
 		#endif
+   
    原因：
+
 	android toolchai 的 passwd 结构体没有 pw_gecos 成员，给 fullname 赋值, 避免访问 pwd->pw_gecos。
+
 c. 执行 ./configure --prefix="${SYSROOT}/usr" --host=arm-linux-androideabi CFLAGS="--sysroot $SYSROOT" --enable-static --disable-java --disable-native-java
+
 d. make -j4;make install
+
 e. 编译完后在 ${SYSROOT}/usr/lib/目录下能找到库(libasprintf.so, libgettextlib.so, libgettextpo.so, libgettextsrc.so, libintl.so)
   
 6. 编译libffi
+
 a. ./configure --prefix="${SYSROOT}/usr" --host=arm-linux-androideabi CFLAGS="--sysroot $SYSROOT" --enable-static
+
 b. make -4;make install
+
 c. 编译完后在 ${SYSROOT}/usr/lib/目录下能找到库libffi.la pkgconfig/libffi.pc
 
 7. 编译glib, (编译glib2.40, 参见7.1)
+
 a. 新建一个文件 android.cache, 写入以下内容.
+
 	# file android.cache
+
 	ac_cv_type_long_long=yes
+
 	glib_cv_stack_grows=no
+
 	glib_cv_uscore=no
+
 	ac_cv_func_posix_getpwuid_r=no
+
 	ac_cv_func_posix_getgrgid_r=no
+
 b. 配置编译的指令(test 模块编译不过去, 没关系, 用不到, disable 之):
+
 另外
+
 #echo "export PKG_CONFIG_PATH=${SYSROOT}/usr/lib/pkgconfig/" >> ${HOME}/.bashrc
+
 echo "export PKG_CONFIG_LIBDIR=${SYSROOT}/usr/lib/pkgconfig/" >> ${HOME}/.bashrc
+
 原因 PKG_CONFIG_LIBDIR的优先级比 PKG_CONFIG_PATH 高，所以会覆盖PKG_CONFIG_PATH的设置。
+
 $ ./configure --prefix="${SYSROOT}/usr" --host=arm-linux-androideabi CFLAGS="--sysroot $SYSROOT" --enable-static --cache-file=android.cache --disable-modular-tests
+
 c. 打补丁:https://gist.github.com/mathslinux/5283294
+
 ###############==>创建glib-2.34.3/gio/android-dep.h, 内容:
+
 #ifndef ANDROID-DEP_H
+
 #define ANDROID-DEP_H
 
 #ifdef __ANDROID__
@@ -266,24 +331,35 @@ Line36 加入#include "android-dep.h"
 ###############==>更新glib-2.34.3/glib/gstrfuncs.c
 其他修改见patch
 
+
 d. config.h去掉HAVE_PTHREAD_ATTR_SETSTACKSIZE
+
 #define HAVE_PTHREAD_ATTR_SETSTACKSIZE 0
 
 ====================================================================================================
+
 编译libnice
+
 ./configure --prefix="${SYSROOT}/usr" --host=arm-linux-androideabi CFLAGS="--sysroot $SYSROOT" --enable-static --disable-shared  LDFLAGS="-static"
 
 
 7.1编译glib2.40.0 
+
 a. touch android.cache
+
 b. android.cache内容
 	ac_cv_type_long_long=yes
 	glib_cv_stack_grows=no
 	glib_cv_uscore=no
 	ac_cv_func_posix_getpwuid_r=no
 	ac_cv_func_posix_getgrgid_r=no
+
 c. config: ./configure --prefix="${SYSROOT}/usr" --host=arm-linux-androideabi CFLAGS="--sysroot $SYSROOT" --enable-static --cache-file=android.cache --disable-modular-tests LDFLAGS="-static"
+
 d. 有编译不过的地方，参照以上打补丁的方法修改。
+
 e. 生成配置
+
 ./configure --prefix="${SYSROOT}/usr" --host=arm-linux-androideabi CFLAGS="--sysroot $SYSROOT" --enable-static --cache-file=android.cache --disable-modular-tests LDFLAGS="-static" --disable-shared --disable-ipv6
+
 f. make;make install
